@@ -19,8 +19,10 @@ const expressServer = app.listen(PORT, () => {
 
 const io = new Server(expressServer, {
     cors: {
-        origin: process.env.NODE_ENV === "production" ? false : ["http://192.168.1.235:5500"],
-    },
+        origin: ["https://st10443220.github.io/Pinterest-Image-Downloader/"], // Allow this origin
+        methods: ["GET", "POST"], // Allow specific HTTP methods
+        credentials: true // If you need to send cookies or authorization headers
+    }
 });
 
 io.on("connection", (socket) => {
