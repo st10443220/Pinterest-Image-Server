@@ -52,6 +52,10 @@ async function getImageFile(url) {
 
     await page.goto(url, { waitUntil: 'networkidle2' });
 
+    const pageContent = await page.content();
+    console.log(pageContent);
+
+
     const imageSource = await page.evaluate(() => {
         const imageLink = document.querySelector(".hCL.kVc.L4E.MIw");
         return imageLink ? imageLink.getAttribute("src") : null;
