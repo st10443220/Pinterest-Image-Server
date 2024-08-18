@@ -1,0 +1,15 @@
+{
+  "name": "pinterest-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon ."
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "nodemon": "^3.1.4",
+    "puppeteer": "^23.1.0",
+    "socket.io": "^4.7.5"
+  }
+}
