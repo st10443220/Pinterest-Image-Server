@@ -1,48 +1,50 @@
-import express from "express";
-import { Server } from "socket.io";
-import path from "path";
-import { fileURLToPath } from "url";
-import puppeteer from "puppeteer";
+import express from 'express';
+import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import puppeteer from 'puppeteer';
 
+// Resolve __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3500;
 
 const app = express();
 
-app.use(express.static(path.join(__dirname, "public")));
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 const expressServer = app.listen(PORT, () => {
-    console.log(`Listening on port ${PORT}`);
+    console.log(`Server is listening on port ${PORT}`);
 });
 
 const io = new Server(expressServer, {
     cors: {
-        origin: ["https://st10443220.github.io"], // Allow this origin
+        origin: ["http://127.0.0.1:5500"], // Allow this origin for development
         methods: ["GET", "POST"], // Allow specific HTTP methods
-        credentials: true // If you need to send cookies or authorization headers
+        credentials: true // Allow sending cookies or headers
     }
 });
 
-io.on("connection", (socket) => {
+io.on('connection', (socket) => {
     const id = socket.id;
-    console.log(`User with socket id { ${id} } has connected`);
+    console.log(`User with socket id ${id} has connected`);
 
-    socket.on("message", async ({ url }) => {
-        console.log(`Received message with URL: { ${url} }`);
+    socket.on('message', async ({ url }) => {
+        console.log(`Received message with URL: ${url}`);
         try {
-            const imageSource = await getImageFile(url);
+            const { imageSource, imageHeader } = await getImageFile(url);
             console.log(`Image Source Scraped: ${imageSource}`);
-            socket.emit("message", { imageSource });
+            socket.emit('message', { imageSource, imageHeader });
         } catch (error) {
             console.error(`Error fetching image: ${error.message}`);
-            socket.emit("message", { imageSource: null });
+            socket.emit('message', { imageSource: null, imageHeader: "No header" });
         }
     });
 
-    socket.on("disconnect", () => {
-        console.log(`User with socket id { ${id} } has disconnected`);
+    socket.on('disconnect', () => {
+        console.log(`User with socket id ${id} has disconnected`);
     });
 });
 
@@ -50,18 +52,23 @@ async function getImageFile(url) {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
 
-    await page.goto(url, { waitUntil: 'networkidle2' });
+    try {
+        await page.goto(url, { waitUntil: 'networkidle2' });
 
-    const pageContent = await page.content();
-    console.log(pageContent);
+        const { imageSource, imageHeader } = await page.evaluate(() => {
+            const imageLink = document.querySelector(".hCL.kVc.L4E.MIw");
+            const imageText = document.querySelector(".lH1.dyH.iFc.H2s.GTB.X8m.zDA.IZT");
+            return {
+                imageSource: imageLink ? imageLink.getAttribute("src") : null,
+                imageHeader: imageText ? imageText.innerText : null
+            };
+        });
 
-
-    const imageSource = await page.evaluate(() => {
-        const imageLink = document.querySelector(".hCL.kVc.L4E.MIw");
-        return imageLink ? imageLink.getAttribute("src") : null;
-    });
-
-    await browser.close();
-
-    return imageSource;
+        return { imageSource, imageHeader };
+    } catch (error) {
+        console.error(`Puppeteer error: ${error.message}`);
+        return { imageSource: null, imageHeader: null };
+    } finally {
+        await browser.close();
+    }
 }
